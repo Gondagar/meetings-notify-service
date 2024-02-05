@@ -13,17 +13,19 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import okhttp3.logging.HttpLoggingInterceptor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.*;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -52,13 +54,13 @@ public class SchedulerService {
     private static final String DATE_FORMATTER = "yyyy-MM-dd HH:mm"; //2020-06-03T16:10:43.176
 
 
-    @Value("${app.meeting.service.uri:http://localhost:63798/api/meetings/all}")
+    @Value("${app.meeting.service.uri:https://localhost:44306/api/meetings/all}")
     String meetingServiceUri;
 
     @Value("${jwt.secret:EWRsdfwerEWRWrgfdPklewrIOP34234_432hJKHJK534##BmB_}")
     String accessSecret;
 
-    public SchedulerService(EmailService emailSenderService, ChatIdRepository chatIdRepository, AlreadySentRepository alreadySentRepository, TelegramService bot, OkHttpClient okHttpClient) throws NoSuchAlgorithmException, KeyManagementException {
+    public SchedulerService(EmailService emailSenderService, ChatIdRepository chatIdRepository, AlreadySentRepository alreadySentRepository, TelegramService bot) throws NoSuchAlgorithmException, KeyManagementException {
         this.emailSenderService = emailSenderService;
         this.chatIdRepository = chatIdRepository;
         this.alreadySentRepository = alreadySentRepository;
@@ -66,22 +68,21 @@ public class SchedulerService {
 
         mapper = new ObjectMapper();
 
-        this.httpClient = okHttpClient;
+        this.httpClient = getUnsafeOkHttpClient();
+
         formatter = DateTimeFormatter.ofPattern(DATE_FORMATTER);
     }
 
     @PostConstruct
     private void init() {
         token = createAccessToken();
-        System.out.println("Token " + token);
     }
 
 
     @Scheduled(fixedDelay = 150000, initialDelay = 5000)
-
     public void getNewEvent() throws Exception {
 
-        log.debug("Get information about events");
+        log.info("Get information about events");
 
         Request request = new Request.Builder()
                 .url(meetingServiceUri)
@@ -90,7 +91,7 @@ public class SchedulerService {
                 .build();
 
         Response response = httpClient.newCall(request).execute();
-        log.debug("Response " + response);
+        log.info("Response " + response);
 
         if (response.isSuccessful()) {
             final String json = response.body().string();
@@ -104,7 +105,7 @@ public class SchedulerService {
                     Optional<AlreadySent> byOwnerAndDateTime = alreadySentRepository.findByOwnerAndDateTime(meeting.owner.userEmail, meeting.startTime);
                     if (!byOwnerAndDateTime.isPresent()) {
 
-                        log.info("There is a meeting to remind{}", meeting);
+                        log.info("There is a meeting to remind {}", meeting);
                         alreadySentRepository.save(AlreadySent.builder().owner(meeting.owner.userEmail).dateTime(meeting.startTime).build());
 
                         if (meeting.startTime.isBefore(LocalDateTime.now().plusMinutes(60))) {
@@ -146,10 +147,10 @@ public class SchedulerService {
     @NotNull
     private String getNotifyMassage(Meeting meeting) {
         String meetingTime = meeting.startTime.format(formatter);
-        String smile = "\\xF0\\x9F\\x95\\xA1";
+        String smile = "\uD83D\uDD61";
         return new StringBuilder()
                 .append(smile)
-                .append(" You have a scheduled meeting with ")
+                .append("You have a scheduled meeting with ")
                 .append(meeting.owner.userFirstName).append(" ")
                 .append(meeting.owner.userLastName).append(" at  ")
                 .append(meetingTime).append(". ")
@@ -165,7 +166,7 @@ public class SchedulerService {
         claims.put("role", "admin");
 
         Date currentTime = new Date();
-        return "Bearer " + Jwts.builder()//
+        String accessToken = "Bearer " + Jwts.builder()//
                 .setHeaderParam("alg", "HS256")
                 .setHeaderParam("typ", "JWT")
                 .setClaims(claims)//
@@ -174,9 +175,48 @@ public class SchedulerService {
                 .setNotBefore(currentTime)
                 .signWith(SignatureAlgorithm.HS256, accessSecret = Base64.getEncoder().encodeToString(accessSecret.getBytes()))//
                 .compact();
+
+        log.info("Generated access token [{}]", accessToken);
+        return accessToken;
     }
 
+    public static OkHttpClient getUnsafeOkHttpClient() {
+        try {
 
+            final TrustManager[] trustAllCerts = new TrustManager[] {
+                    new X509TrustManager() {
+                        @Override
+                        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                        }
 
+                        @Override
+                        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                        }
 
+                        @Override
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return new X509Certificate[]{};
+                        }
+                    }
+            };
+
+            final SSLContext sslContext = SSLContext.getInstance("SSL");
+            sslContext.init(null, trustAllCerts, new SecureRandom());
+
+            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
+            OkHttpClient.Builder builder = new OkHttpClient.Builder();
+            builder.sslSocketFactory(sslSocketFactory, (X509TrustManager)trustAllCerts[0]);
+            builder.hostnameVerifier(new HostnameVerifier() {
+                @Override
+                public boolean verify(String hostname, SSLSession session) {
+                    return true; // Не перевіряємо ім'я хоста
+                }
+            });
+
+            return builder.build();
+        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

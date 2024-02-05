@@ -11,7 +11,6 @@ import javax.mail.internet.MimeMessage;
 @Service
 public class EmailService {
 
-
     private final Environment env;
 
     private MimeMessage message;
@@ -32,7 +31,7 @@ public class EmailService {
         mailMessage.setSubject(subject);
         mailMessage.setText(message);
 
-        mailMessage.setFrom("5611666@gmail.com");
+        mailMessage.setFrom("notifymeeting@gmail.com");
 
         javaMailSender.send(mailMessage);
     }

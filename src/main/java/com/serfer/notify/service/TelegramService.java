@@ -57,7 +57,7 @@ public class TelegramService extends TelegramLongPollingBot {
             }
 
         } else {
-            sendMessage = createMessage(update.getMessage().getChatId(), "If You wont merge your account please write your email.");
+            sendMessage = createMessage(update.getMessage().getChatId(), "If You want to merge your account please write your email.");
         }
 
         sendMsg(sendMessage);
