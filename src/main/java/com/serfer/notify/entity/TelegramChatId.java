@@ -1,4 +1,4 @@
-package com.serfer.notify.model;
+package com.serfer.notify.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,6 +22,6 @@ public class TelegramChatId {
 
     String email;
 
-    Long chapId;
+    Long chatId;
 
 }

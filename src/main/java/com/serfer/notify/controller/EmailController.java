@@ -1,6 +1,6 @@
 package com.serfer.notify.controller;
 
-import com.serfer.notify.model.Email;
+import com.serfer.notify.tranfer.Email;
 import com.serfer.notify.service.EmailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

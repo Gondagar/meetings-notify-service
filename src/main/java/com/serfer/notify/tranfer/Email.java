@@ -1,4 +1,4 @@
-package com.serfer.notify.model;
+package com.serfer.notify.tranfer;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

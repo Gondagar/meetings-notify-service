@@ -1,9 +1,8 @@
 package com.serfer.notify.service;
 
-import com.serfer.notify.model.TelegramChatId;
+import com.serfer.notify.entity.TelegramChatId;
 import com.serfer.notify.repository.ChatIdRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -41,7 +40,7 @@ public class TelegramService extends TelegramLongPollingBot {
             Optional<TelegramChatId> existChatId = chatIdRepository.findByEmail(message);
             if (existChatId.isPresent()) {
                 TelegramChatId telegramChatId = existChatId.get();
-                if (telegramChatId.getChapId().equals(chatId)) {
+                if (telegramChatId.getChatId().equals(chatId)) {
                     sendMessage = createMessage(update.getMessage().getChatId(), "You have already merged your account with the telegram");
                 } else {
 
@@ -51,7 +50,7 @@ public class TelegramService extends TelegramLongPollingBot {
             } else {
                 chatIdRepository.save(TelegramChatId.builder()
                         .email(message)
-                        .chapId(chatId)
+                        .chatId(chatId)
                         .build());
                 sendMessage = createMessage(update.getMessage().getChatId(), "Email " + message + " successfully combined with telegram");
             }
@@ -66,28 +65,19 @@ public class TelegramService extends TelegramLongPollingBot {
 
     public void sendMsg(SendMessage msg) {
 
-        try { //Чтобы не крашнулась программа при вылете Exception
+        try {
             Message execute = execute(msg);
         } catch (TelegramApiException e) {
-            // e.printStackTrace();
+            e.printStackTrace();
         }
     }
 
-    /**
-     * Метод возвращает имя бота, указанное при регистрации.
-     *
-     * @return имя бота
-     */
+
     @Override
     public String getBotUsername() {
         return BOT_USERNAME;
     }
 
-    /**
-     * Метод возвращает token бота для связи с сервером Telegram
-     *
-     * @return token для бота
-     */
     @Override
     public String getBotToken() {
         return BOT_TOKEN;

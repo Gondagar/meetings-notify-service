@@ -1,4 +1,4 @@
-package com.serfer.notify.model;
+package com.serfer.notify.entity;
 
 
 import lombok.AllArgsConstructor;

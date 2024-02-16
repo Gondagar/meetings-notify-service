@@ -1,7 +1,6 @@
 package com.serfer.notify.repository;
 
-import com.serfer.notify.model.AlreadySent;
-import com.serfer.notify.model.TelegramChatId;
+import com.serfer.notify.entity.AlreadySent;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;

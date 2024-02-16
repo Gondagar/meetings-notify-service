@@ -3,9 +3,9 @@ package com.serfer.notify.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.serfer.notify.model.AlreadySent;
-import com.serfer.notify.model.Meeting;
-import com.serfer.notify.model.TelegramChatId;
+import com.serfer.notify.entity.AlreadySent;
+import com.serfer.notify.tranfer.Meeting;
+import com.serfer.notify.entity.TelegramChatId;
 import com.serfer.notify.repository.AlreadySentRepository;
 import com.serfer.notify.repository.ChatIdRepository;
 import io.jsonwebtoken.Claims;
@@ -13,7 +13,6 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
-import okhttp3.logging.HttpLoggingInterceptor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -125,7 +124,7 @@ public class SchedulerService {
                                         log.info("An additional reminder will be sent to the user {}", participant.userEmail);
                                         TelegramChatId telegramChatId = byEmail.get();
 
-                                        bot.sendMsg(bot.createMessage(telegramChatId.getChapId(), message));
+                                        bot.sendMsg(bot.createMessage(telegramChatId.getChatId(), message));
                                     }
                                 } catch (Exception e) {
                                     e.printStackTrace();
